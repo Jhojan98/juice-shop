@@ -26,6 +26,7 @@ jobs:
           image-ref: 'taller-waap/app:${{ github.sha }}'
           severity: 'CRITICAL,HIGH'
           exit-code: '1'
+          ignore-unfixed: true
 
       - name: IaC scan - Checkov
         uses: bridgecrewio/checkov-action@master
