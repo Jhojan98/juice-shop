@@ -11,6 +11,8 @@ import { BasketModel } from '../models/basket'
 import * as security from '../lib/insecurity'
 import { UserModel } from '../models/user'
 import * as models from '../models/index'
+import { isSqlInjection } from '../lib/raspGuard'
+import logger from '../lib/logger'
 import { type User } from '../data/types'
 import * as utils from '../lib/utils'
 
@@ -31,7 +33,13 @@ export function login () {
 
   return (req: Request, res: Response, next: NextFunction) => {
     verifyPreLoginChallenges(req) // vuln-code-snippet hide-line
-    models.sequelize.query(`SELECT * FROM Users WHERE email = '${req.body.email || ''}' AND password = '${security.hash(req.body.password || '')}' AND deletedAt IS NULL`, { model: UserModel, plain: true }) // vuln-code-snippet vuln-line loginAdminChallenge loginBenderChallenge loginJimChallenge
+    const finalQuery = `SELECT * FROM Users WHERE email = '${req.body.email || ''}' AND password = '${security.hash(req.body.password || '')}' AND deletedAt IS NULL`
+    if (process.env.RASP_ENABLED !== '0' && isSqlInjection(finalQuery)) {
+      logger.warn(`RASP: consulta SQL bloqueada en tiempo de ejecucion: ${finalQuery}`)
+      res.status(403).json({ status: 'blocked', reason: 'Operacion bloqueada por RASP' })
+      return
+    }
+    models.sequelize.query(finalQuery, { model: UserModel, plain: true }) // vuln-code-snippet vuln-line loginAdminChallenge loginBenderChallenge loginJimChallenge
       .then((authenticatedUser) => { // vuln-code-snippet neutral-line loginAdminChallenge loginBenderChallenge loginJimChallenge
         const user = utils.queryResultToJson(authenticatedUser)
         if (user.data?.id && user.data.totpSecret !== '') {

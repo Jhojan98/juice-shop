@@ -51,6 +51,7 @@ import { PrivacyRequestModel } from './models/privacyRequests'
 import { SecurityQuestionModel } from './models/securityQuestion'
 
 import logger from './lib/logger'
+import { raspMiddleware } from './lib/raspGuard'
 import * as utils from './lib/utils'
 import * as antiCheat from './lib/antiCheat'
 import * as security from './lib/insecurity'
@@ -344,6 +345,9 @@ function configureApp (app: ReturnType<typeof express>, seq: typeof sequelize) {
     }
     next()
   })
+
+  /* RASP académico Fase 4: inspección global post-parseo (ver lib/raspGuard.ts) */
+  app.use(raspMiddleware)
 
   /* HTTP request logging */
   const accessLogStream = getStream({
